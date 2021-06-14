@@ -11,19 +11,31 @@ app.use(express.urlencoded({extended: false}))
 app.use(express.static('public'))
 
 // Connecting to SQL database
-let db = mysql.createConnection({
+let dbConfig = {
   host:'us-cdbr-east-04.cleardb.com',
   user: 'b15a695a411349',
   password: 'f15eacc4',
-  database: 'heroku_22a4d4d84eb1c85'
-})
+  database: 'heroku_22a4d4d84eb1c85',
+  connectTimeout : 60000
+}
+
+console.log('Trying to connect to the database')
+let db = mysql.createConnection(dbConfig)
 
 db.connect(err => {
   if(err) {
+    console.log('Error connecting to the database')
     throw err
   }
   app.listen(process.env.PORT || 3000)
   console.log('MySQL Connected')
+})
+
+let pool = mysql.createPool(dbConfig)
+pool.on('connection', function (db) {
+  if (db) {
+      logger.info('Connected the database via threadId %d!!', db.threadId)
+  }
 })
 
 // Password Protection
