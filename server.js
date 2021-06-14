@@ -20,23 +20,51 @@ let dbConfig = {
 }
 
 console.log('Trying to connect to the database')
-let db = mysql.createConnection(dbConfig)
+let db;
 
-db.connect(err => {
-  if(err) {
-    console.log('Error connecting to the database')
-    throw err
-  }
+function handleDisconnect() {
+  db = mysql.createConnection(dbConfig); // Recreate the connection, since
+                                                  // the old one cannot be reused.
+
+                                                  db.connect(function(err) {              // The server is either down
+    if(err) {                                     // or restarting (takes a while sometimes).
+      console.log('error when connecting to db:', err);
+      setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
+    }                                     // to avoid a hot loop, and to allow our node script to
+  });                                     // process asynchronous requests in the meantime.
+                                          // If you're also serving http, display a 503 error.
+                                          db.on('error', function(err) {
+    console.log('db error', err);
+    if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
+      handleDisconnect();                         // lost due to either server restart, or a
+    } else {                                      // connnection idle timeout (the wait_timeout
+      throw err;                                  // server variable configures this)
+    }
+  });
+
   app.listen(process.env.PORT || 3000)
-  console.log('MySQL Connected')
-})
+}
 
-let pool = mysql.createPool(dbConfig)
-pool.on('connection', function (db) {
-  if (db) {
-      logger.info('Connected the database via threadId %d!!', db.threadId)
-  }
-})
+handleDisconnect();
+console.log('MySQL Connected')
+
+// let db = mysql.createConnection(dbConfig)
+
+// db.connect(err => {
+//   if(err) {
+//     console.log('Error connecting to the database')
+//     throw err
+//   }
+//   app.listen(process.env.PORT || 3000)
+//   console.log('MySQL Connected')
+// })
+
+// let pool = mysql.createPool(dbConfig)
+// pool.on('connection', function (db) {
+//   if (db) {
+//       logger.info('Connected the database via threadId %d!!', db.threadId)
+//   }
+// })
 
 // Password Protection
 function passwordProtected(req, res, next) {
@@ -47,6 +75,7 @@ function passwordProtected(req, res, next) {
     res.status(401).send("Authentication Required")
   }
 }
+
 app.use(passwordProtected)
 
 // Homepage GET request
