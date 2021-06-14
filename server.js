@@ -22,31 +22,41 @@ let dbConfig = {
 console.log('Trying to connect to the database')
 let db;
 
-function handleDisconnect() {
-  db = mysql.createConnection(dbConfig); // Recreate the connection, since
-                                                  // the old one cannot be reused.
 
-                                                  db.connect(function(err) {              // The server is either down
-    if(err) {                                     // or restarting (takes a while sometimes).
-      console.log('error when connecting to db:', err);
-      setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
-    }                                     // to avoid a hot loop, and to allow our node script to
-  });                                     // process asynchronous requests in the meantime.
-                                          // If you're also serving http, display a 503 error.
-                                          db.on('error', function(err) {
-    console.log('db error', err);
-    if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
-      handleDisconnect();                         // lost due to either server restart, or a
-    } else {                                      // connnection idle timeout (the wait_timeout
-      throw err;                                  // server variable configures this)
-    }
-  });
 
+db = mysql.createPool(dbConfig)
+db.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+  if (error) throw error;
+  console.log('MySQL Connected')
+  console.log('The solution is: ', results[0].solution);
   app.listen(process.env.PORT || 3000)
-}
+});
 
-handleDisconnect();
-console.log('MySQL Connected')
+// function handleDisconnect() {
+//   db = mysql.createConnection(dbConfig); // Recreate the connection, since
+//                                                   // the old one cannot be reused.
+
+//                                                   db.connect(function(err) {              // The server is either down
+//     if(err) {                                     // or restarting (takes a while sometimes).
+//       console.log('error when connecting to db:', err);
+//       setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
+//     }                                     // to avoid a hot loop, and to allow our node script to
+//   });                                     // process asynchronous requests in the meantime.
+//                                           // If you're also serving http, display a 503 error.
+//                                           db.on('error', function(err) {
+//     console.log('db error', err);
+//     if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
+//       handleDisconnect();                         // lost due to either server restart, or a
+//     } else {                                      // connnection idle timeout (the wait_timeout
+//       throw err;                                  // server variable configures this)
+//     }
+//   });
+
+//   app.listen(process.env.PORT || 3000)
+// }
+
+// handleDisconnect();
+// console.log('MySQL Connected')
 
 // let db = mysql.createConnection(dbConfig)
 
